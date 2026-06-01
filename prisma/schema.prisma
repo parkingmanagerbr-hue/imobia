@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+  VIEWER
+}
+
+enum Plan {
+  FREE
+  MONTHLY
+  ANNUAL
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  COMMERCIAL
+  LAND
+  RURAL
+}
+
+enum PropertyPurpose {
+  SALE
+  RENT
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  SOLD
+  RENTED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  LOST
+}
+
+enum LeadSource {
+  WHATSAPP
+  SITE
+  PHONE
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(AGENT)
+  plan          Plan      @default(FREE)
+  planStatus    PlanStatus @default(INACTIVE)
+  planExpiresAt DateTime?
+  agencyId      String?
+  agency        Agency?   @relation(fields: [agencyId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Agency {
+  id                String         @id @default(cuid())
+  name              String
+  slug              String         @unique
+  logo              String?
+  phone             String
+  email             String
+  address           String?
+  city              String?
+  state             String?
+  creci             String?
+  whatsiaApiKey     String?
+  whatsiaInstanceId String?
+  userId            String
+  users             User[]
+  properties        Property[]
+  leads             Lead[]
+  subscriptions     Subscription[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@map("agencies")
+}
+
+model Property {
+  id           String          @id @default(cuid())
+  title        String
+  description  String
+  type         PropertyType
+  purpose      PropertyPurpose
+  price        Float
+  condoFee     Float?
+  iptu         Float?
+  area         Float
+  bedrooms     Int?
+  bathrooms    Int?
+  parkingSpots Int?
+  floor        Int?
+  furnished    Boolean         @default(false)
+  petFriendly  Boolean         @default(false)
+  address      String
+  neighborhood String
+  city         String
+  state        String
+  zipCode      String
+  lat          Float?
+  lng          Float?
+  status       PropertyStatus  @default(ACTIVE)
+  featured     Boolean         @default(false)
+  images       Json            @default("[]")
+  amenities    Json            @default("[]")
+  agencyId     String
+  agency       Agency          @relation(fields: [agencyId], references: [id])
+  agentId      String?
+  leads        Lead[]
+  views        Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@map("properties")
+}
+
+model Lead {
+  id         String     @id @default(cuid())
+  name       String
+  phone      String
+  email      String?
+  message    String?
+  propertyId String?
+  property   Property?  @relation(fields: [propertyId], references: [id])
+  agencyId   String
+  agency     Agency     @relation(fields: [agencyId], references: [id])
+  status     LeadStatus @default(NEW)
+  source     LeadSource @default(SITE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("leads")
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  agencyId         String
+  agency           Agency             @relation(fields: [agencyId], references: [id])
+  plan             SubscriptionPlan
+  status           SubscriptionStatus @default(ACTIVE)
+  mercadoPagoId    String?
+  mercadoPagoSubId String?
+  amount           Float
+  startDate        DateTime
+  endDate          DateTime
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@map("subscriptions")
+}
