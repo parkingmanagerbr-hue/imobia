@@ -414,6 +414,7 @@ export default function HomePage() {
               <h4 className="text-white font-semibold mb-4">Contato</h4>
               <ul className="space-y-2 text-gray-500 text-sm">
                 <li>contato@veloxisit.com.br</li>
+                <li>WhatsApp: (19) 98210-3949</li>
                 <li>Seg–Sex, 9h–18h</li>
               </ul>
             </div>
