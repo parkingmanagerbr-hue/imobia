@@ -1,4 +1,5 @@
-import Image from 'next/image';
+'use client';
+
 import Link from 'next/link';
 import {
   Search,
@@ -15,6 +16,8 @@ import {
 import { Navbar } from '@/components/ui/Navbar';
 import { Button } from '@/components/ui/Button';
 import { PropertyCard } from '@/components/ui/PropertyCard';
+import { useI18n } from '@/lib/i18n';
+import { LangSwitcher } from '@/app/_components/LangSwitcher';
 
 const FEATURED_PROPERTIES = [
   {
@@ -127,38 +130,41 @@ const FEATURED_PROPERTIES = [
   },
 ];
 
-const STATS = [
-  { value: '2.400+', label: 'imóveis disponíveis' },
-  { value: '180+', label: 'imobiliárias parceiras' },
-  { value: '98%', label: 'clientes satisfeitos' },
-  { value: '24/7', label: 'atendimento IA' },
-];
-
-const HOW_IT_WORKS = [
-  {
-    step: '01',
-    icon: <Search size={24} />,
-    title: 'Busque',
-    description:
-      'Use nossos filtros inteligentes para encontrar o imóvel ideal. Filtre por localização, preço, tamanho e muito mais.',
-  },
-  {
-    step: '02',
-    icon: <MessageCircle size={24} />,
-    title: 'Agende via WhatsApp IA',
-    description:
-      'Nossa IA responde instantaneamente no WhatsApp, 24 horas por dia. Agende visitas, tire dúvidas e receba propostas.',
-  },
-  {
-    step: '03',
-    icon: <Home size={24} />,
-    title: 'Realize o sonho',
-    description:
-      'Feche negócio com total segurança. Nossas imobiliárias parceiras cuidam de toda a documentação para você.',
-  },
-];
-
 export default function HomePage() {
+  const { t } = useI18n();
+
+  // Nada aqui pode ser numero que a gente nao mede. As metricas antigas
+  // ("2.400+ imoveis", "180+ imobiliarias", "98% satisfacao") eram ficticias
+  // num site publico — prospect de imobiliaria checa. Trocadas por
+  // caracteristicas verificaveis do proprio produto.
+  const STATS = [
+    { value: '24/7', label: t('stats.support') },
+    { value: 'IA', label: t('stats.ai') },
+    { value: 'LGPD', label: t('stats.lgpd') },
+    { value: 'Beta', label: t('stats.beta') },
+  ];
+
+  const HOW_IT_WORKS = [
+    {
+      step: '01',
+      icon: <Search size={24} />,
+      title: t('how.step1.title'),
+      description: t('how.step1.desc'),
+    },
+    {
+      step: '02',
+      icon: <MessageCircle size={24} />,
+      title: t('how.step2.title'),
+      description: t('how.step2.desc'),
+    },
+    {
+      step: '03',
+      icon: <Home size={24} />,
+      title: t('how.step3.title'),
+      description: t('how.step3.desc'),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -166,20 +172,23 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="pt-16 bg-gradient-to-br from-blue-50 via-white to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+          <div className="flex justify-end mb-4">
+            <LangSwitcher />
+          </div>
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-blue-100 text-[#0057FF] text-sm font-medium px-4 py-1.5 rounded-full mb-6">
               <Zap size={14} />
-              Atendimento com IA 24/7 via WhatsApp
+              {t('hero.badge')}
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Encontre o imóvel{' '}
-              <span className="text-[#0057FF]">perfeito</span> com IA
+              {t('hero.title.pre')}{' '}
+              <span className="text-[#0057FF]">{t('hero.title.highlight')}</span>{' '}
+              {t('hero.title.post')}
             </h1>
 
             <p className="text-lg text-gray-600 mb-10 max-w-xl mx-auto">
-              Mais de 2.400 imóveis em todo o Brasil. Atendimento instantâneo via
-              WhatsApp com inteligência artificial, disponível 24 horas por dia.
+              {t('hero.subtitle')}
             </p>
 
             {/* Search Box */}
@@ -187,10 +196,10 @@ export default function HomePage() {
               {/* Tabs */}
               <div className="flex gap-1 mb-3 p-1 bg-gray-100 rounded-xl">
                 <button className="flex-1 py-2 text-sm font-semibold text-white bg-[#0057FF] rounded-lg transition-all">
-                  Comprar
+                  {t('hero.tabBuy')}
                 </button>
                 <button className="flex-1 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-lg transition-all">
-                  Alugar
+                  {t('hero.tabRent')}
                 </button>
               </div>
 
@@ -203,20 +212,20 @@ export default function HomePage() {
                   />
                   <input
                     type="text"
-                    placeholder="Cidade, bairro ou endereço..."
+                    placeholder={t('hero.searchPlaceholder')}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#0057FF] focus:border-transparent"
                   />
                 </div>
                 <Link href="/imoveis">
                   <button className="bg-[#0057FF] hover:bg-[#0041cc] text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap">
-                    Buscar
+                    {t('hero.searchButton')}
                   </button>
                 </Link>
               </div>
             </div>
 
             <p className="text-sm text-gray-500 mt-4">
-              Buscar em São Paulo, Rio de Janeiro, Curitiba, Florianópolis...
+              {t('hero.searchHint')}
             </p>
           </div>
         </div>
@@ -243,11 +252,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Como funciona
+              {t('how.heading')}
             </h2>
             <p className="text-gray-600 max-w-xl mx-auto">
-              Encontrar seu próximo imóvel nunca foi tão simples. Três passos e você já
-              está conversando com um especialista.
+              {t('how.subheading')}
             </p>
           </div>
 
@@ -275,21 +283,33 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-10">
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-                Imóveis em destaque
+                {t('featured.heading')}
               </h2>
-              <p className="text-gray-600">Selecionados especialmente para você</p>
+              <p className="text-gray-600">{t('featured.subheading')}</p>
             </div>
             <Link href="/imoveis">
               <Button variant="outline" size="md">
-                Ver todos
+                {t('featured.viewAll')}
                 <ChevronRight size={16} />
               </Button>
             </Link>
           </div>
 
+          <div className="mb-6 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <span className="rounded bg-amber-500 px-2 py-0.5 text-xs font-bold text-amber-950">
+              {t('featured.demoBadge')}
+            </span>
+            <span className="text-sm text-amber-200/90">{t('featured.demoNote')}</span>
+          </div>
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURED_PROPERTIES.map((property) => (
-              <PropertyCard key={property.id} {...property} />
+              <div key={property.id} className="relative">
+                <span className="absolute right-3 top-3 z-10 rounded bg-amber-500 px-2 py-0.5 text-[11px] font-bold text-amber-950 shadow">
+                  {t('featured.demoBadge')}
+                </span>
+                <PropertyCard {...property} />
+              </div>
             ))}
           </div>
         </div>
@@ -302,23 +322,22 @@ export default function HomePage() {
             <div className="lg:max-w-xl mb-8 lg:mb-0">
               <div className="inline-flex items-center gap-2 bg-blue-900 text-blue-300 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
                 <Building2 size={14} />
-                Para Imobiliárias
+                {t('agencyCta.badge')}
               </div>
               <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                Digitalize sua imobiliária com IA
+                {t('agencyCta.heading')}
               </h2>
               <p className="text-gray-400 text-lg mb-6 leading-relaxed">
-                Integre o WhatsIA à sua imobiliária e tenha um agente de IA atendendo
-                seus clientes 24 horas por dia, 7 dias por semana. Nunca perca um lead.
+                {t('agencyCta.body')}
               </p>
 
               <div className="space-y-3 mb-8">
                 {[
-                  'Agente IA no WhatsApp 24/7',
-                  'Dashboard completo de leads',
-                  'Imóveis ilimitados',
-                  'Relatórios e métricas',
-                  'Suporte prioritário',
+                  t('agencyCta.feat1'),
+                  t('agencyCta.feat2'),
+                  t('agencyCta.feat3'),
+                  t('agencyCta.feat4'),
+                  t('agencyCta.feat5'),
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-3">
                     <CheckCircle size={18} className="text-[#0057FF] flex-shrink-0" />
@@ -330,7 +349,7 @@ export default function HomePage() {
               <div className="flex gap-4">
                 <Link href="/planos">
                   <Button variant="primary" size="lg">
-                    Começar agora
+                    {t('agencyCta.start')}
                     <ChevronRight size={18} />
                   </Button>
                 </Link>
@@ -340,7 +359,7 @@ export default function HomePage() {
                     size="lg"
                     className="text-white hover:bg-gray-800"
                   >
-                    Ver planos
+                    {t('agencyCta.viewPlans')}
                   </Button>
                 </Link>
               </div>
@@ -349,10 +368,10 @@ export default function HomePage() {
             {/* Feature cards */}
             <div className="grid grid-cols-2 gap-4 lg:max-w-sm">
               {[
-                { icon: <Clock size={22} />, title: '24/7', desc: 'Atendimento ininterrupto' },
-                { icon: <MessageCircle size={22} />, title: 'WhatsApp', desc: 'Canal preferido dos brasileiros' },
-                { icon: <Star size={22} />, title: '98%', desc: 'Taxa de satisfação' },
-                { icon: <Shield size={22} />, title: 'Seguro', desc: 'Dados protegidos LGPD' },
+                { icon: <Clock size={22} />, title: t('agencyCta.card1.title'), desc: t('agencyCta.card1.desc') },
+                { icon: <MessageCircle size={22} />, title: t('agencyCta.card2.title'), desc: t('agencyCta.card2.desc') },
+                { icon: <Star size={22} />, title: t('agencyCta.card3.title'), desc: t('agencyCta.card3.desc') },
+                { icon: <Shield size={22} />, title: t('agencyCta.card4.title'), desc: t('agencyCta.card4.desc') },
               ].map((item) => (
                 <div key={item.title} className="bg-gray-800 rounded-2xl p-5">
                   <div className="text-[#0057FF] mb-3">{item.icon}</div>
@@ -379,15 +398,19 @@ export default function HomePage() {
                 </span>
               </div>
               <p className="text-gray-500 text-sm leading-relaxed">
-                A plataforma imobiliária que usa IA para conectar compradores,
-                locatários e imobiliárias.
+                {t('footer.tagline')}
               </p>
             </div>
 
             <div>
-              <h4 className="text-white font-semibold mb-4">Explorar</h4>
+              <h4 className="text-white font-semibold mb-4">{t('footer.explore')}</h4>
               <ul className="space-y-2">
-                {['Apartamentos', 'Casas', 'Comercial', 'Terrenos'].map((link) => (
+                {[
+                  t('footer.explore.apartments'),
+                  t('footer.explore.houses'),
+                  t('footer.explore.commercial'),
+                  t('footer.explore.land'),
+                ].map((link) => (
                   <li key={link}>
                     <Link href="/imoveis" className="text-gray-500 hover:text-white text-sm transition-colors">
                       {link}
@@ -398,9 +421,14 @@ export default function HomePage() {
             </div>
 
             <div>
-              <h4 className="text-white font-semibold mb-4">Para Imobiliárias</h4>
+              <h4 className="text-white font-semibold mb-4">{t('footer.forAgencies')}</h4>
               <ul className="space-y-2">
-                {['Planos', 'WhatsIA', 'Dashboard', 'Suporte'].map((link) => (
+                {[
+                  t('footer.agencies.plans'),
+                  t('footer.agencies.whatsia'),
+                  t('footer.agencies.dashboard'),
+                  t('footer.agencies.support'),
+                ].map((link) => (
                   <li key={link}>
                     <Link href="/planos" className="text-gray-500 hover:text-white text-sm transition-colors">
                       {link}
@@ -411,31 +439,31 @@ export default function HomePage() {
             </div>
 
             <div>
-              <h4 className="text-white font-semibold mb-4">Contato</h4>
+              <h4 className="text-white font-semibold mb-4">{t('footer.contact')}</h4>
               <ul className="space-y-2 text-gray-500 text-sm">
                 <li><a href="mailto:contato@veloxisit.com.br" className="hover:text-gray-300 transition-colors">contato@veloxisit.com.br</a></li>
                 <li className="flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                   <a href="https://wa.me/5519982103949" className="hover:text-gray-300 transition-colors">(19) 98210-3949</a>
                 </li>
-                <li>Seg–Sex, 9h–18h</li>
+                <li>{t('footer.contact.hours')}</li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-gray-600 text-sm">
-              © 2024 ImobIA. Todos os direitos reservados.
+              {t('footer.rights', { year: new Date().getFullYear() })}
             </p>
             <div className="flex gap-6">
-              <Link href="#" className="text-gray-600 hover:text-white text-sm transition-colors">
-                Privacidade
+              <Link href="https://veloxisit.com.br/privacidade/" className="text-gray-600 hover:text-white text-sm transition-colors">
+                {t('footer.privacy')}
               </Link>
-              <Link href="#" className="text-gray-600 hover:text-white text-sm transition-colors">
-                Termos
+              <Link href="https://veloxisit.com.br/termos/" className="text-gray-600 hover:text-white text-sm transition-colors">
+                {t('footer.terms')}
               </Link>
-              <Link href="#" className="text-gray-600 hover:text-white text-sm transition-colors">
-                LGPD
+              <Link href="https://veloxisit.com.br/lgpd/" className="text-gray-600 hover:text-white text-sm transition-colors">
+                {t('footer.lgpd')}
               </Link>
             </div>
           </div>

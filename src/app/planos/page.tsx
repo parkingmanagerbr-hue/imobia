@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import {
   CheckCircle,
   Zap,
@@ -12,78 +11,111 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/components/ui/Navbar';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
+import { LangSwitcher } from '@/app/_components/LangSwitcher';
+import {
+  CURRENCIES,
+  pricingForCurrency,
+  formatPrice,
+  detectCurrency,
+} from '@/lib/pricing';
+import type { MsgKey } from '@/lib/i18n';
 
-const FEATURES = [
-  'Imóveis ilimitados',
-  'Agente IA no WhatsApp 24/7',
-  'Dashboard de leads',
-  'Relatórios e métricas',
-  'Fotos ilimitadas',
-  'Suporte prioritário',
-  'Integração WhatsIA (Evolution API)',
-  'Notificação instantânea de leads',
-  'Multi-usuários (até 5 agentes)',
-  'Personalização de mensagens IA',
+const FEATURE_KEYS: MsgKey[] = [
+  'plans.feat.unlimitedProperties',
+  'plans.feat.aiAgent',
+  'plans.feat.leadDashboard',
+  'plans.feat.reports',
+  'plans.feat.unlimitedPhotos',
+  'plans.feat.prioritySupport',
+  'plans.feat.whatsiaIntegration',
+  'plans.feat.instantLeads',
+  'plans.feat.multiUser',
+  'plans.feat.aiCustomization',
 ];
 
-const FAQ = [
-  {
-    question: 'Como funciona o período de teste?',
-    answer:
-      'Você tem 7 dias grátis para testar todas as funcionalidades sem precisar de cartão de crédito. Após esse período, escolha o plano que melhor se encaixa na sua imobiliária.',
-  },
-  {
-    question: 'Posso cancelar a qualquer momento?',
-    answer:
-      'Sim! Você pode cancelar sua assinatura a qualquer momento diretamente pelo dashboard. No plano anual, não há reembolso proporcional, mas você mantém o acesso até o fim do período pago.',
-  },
-  {
-    question: 'O WhatsIA já está incluído no plano?',
-    answer:
-      'Sim, a integração com o WhatsIA (Evolution API) está incluída nos dois planos. Você só precisa fornecer sua instância e chave de API do WhatsIA nas configurações.',
-  },
-  {
-    question: 'Quantos imóveis posso cadastrar?',
-    answer:
-      'Imóveis ilimitados! Não há limite para o número de imóveis que você pode cadastrar na plataforma.',
-  },
-  {
-    question: 'Como funciona o suporte?',
-    answer:
-      'Oferecemos suporte via WhatsApp e e-mail, de segunda a sexta, das 9h às 18h. Clientes do plano anual têm acesso prioritário com tempo de resposta de até 2 horas.',
-  },
-  {
-    question: 'Posso ter mais de uma imobiliária no mesmo plano?',
-    answer:
-      'Cada assinatura é vinculada a uma imobiliária. Para múltiplas imobiliárias, entre em contato para planos empresariais com condições especiais.',
-  },
+const FAQ_KEYS: { q: MsgKey; a: MsgKey }[] = [
+  { q: 'faq.q1', a: 'faq.a1' },
+  { q: 'faq.q2', a: 'faq.a2' },
+  { q: 'faq.q3', a: 'faq.a3' },
+  { q: 'faq.q4', a: 'faq.a4' },
+  { q: 'faq.q5', a: 'faq.a5' },
+  { q: 'faq.q6', a: 'faq.a6' },
 ];
 
 export default function PlanosPage() {
+  const { t, lang } = useI18n();
   const [annual, setAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [currency, setCurrency] = useState<string>(() => detectCurrency());
 
-  const monthlyPrice = 499;
-  const annualPrice = 4999;
-  const annualMonthly = Math.floor(annualPrice / 12);
+  const pricing = useMemo(() => pricingForCurrency(currency), [currency]);
+  const monthlyPrice = pricing.monthly;
+  const annualPrice = pricing.yearly;
+  const annualMonthly = Math.round(annualPrice / 12);
   const savings = monthlyPrice * 12 - annualPrice;
+  const savingsPct = Math.round((savings / (monthlyPrice * 12)) * 100);
+
+  const fmt = (v: number) => formatPrice(v, pricing);
 
   const handleSubscribe = async (plan: 'MONTHLY' | 'ANNUAL') => {
     setLoading(true);
+    setError('');
     try {
-      const res = await fetch('/api/mercadopago/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, agencyId: 'demo' }),
-      });
-      const data = await res.json();
-      if (data.init_point) {
-        window.location.href = data.init_point;
+      if (pricing.provider === 'mercadopago') {
+        // BRL flow. Gateway is env-selectable ("sem misturar"): Mercado Pago
+        // (default), Hotmart, or Cakto — credentials stay server-side, only the
+        // choice is exposed to the client. MP keeps the legacy init_point shape;
+        // Hotmart/Cakto are hosted links returning { url }.
+        const brProvider = (
+          process.env.NEXT_PUBLIC_BR_BILLING_PROVIDER || 'mercadopago'
+        ).toLowerCase();
+
+        if (brProvider === 'hotmart' || brProvider === 'cakto') {
+          const res = await fetch(`/api/${brProvider}/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan, agencyId: 'demo', currency: pricing.currency }),
+          });
+          const data = await res.json();
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            setError(t('plans.checkoutError'));
+          }
+        } else {
+          // Existing Mercado Pago flow — unchanged.
+          const res = await fetch('/api/mercadopago/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan, agencyId: 'demo' }),
+          });
+          const data = await res.json();
+          if (data.init_point) {
+            window.location.href = data.init_point;
+          } else {
+            setError(t('plans.checkoutError'));
+          }
+        }
+      } else {
+        // International flow — Stripe recurring subscription.
+        const res = await fetch('/api/stripe/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan, agencyId: 'demo', currency: pricing.currency, locale: lang }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          setError(t('plans.checkoutError'));
+        }
       }
-    } catch (error) {
-      console.error('Error subscribing:', error);
+    } catch (err) {
+      console.error('Error subscribing:', err);
+      setError(t('plans.checkoutError'));
     } finally {
       setLoading(false);
     }
@@ -97,18 +129,34 @@ export default function PlanosPage() {
         {/* Header */}
         <section className="bg-gradient-to-br from-blue-50 via-white to-white py-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            {/* Language + currency controls */}
+            <div className="flex justify-center gap-3 mb-6">
+              <LangSwitcher />
+              <select
+                aria-label={t('common.currency')}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="bg-white border border-gray-200 rounded-lg text-sm px-2.5 py-1.5 text-gray-700 hover:border-[#0057FF] focus:outline-none focus:ring-2 focus:ring-[#0057FF]/30"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="inline-flex items-center gap-2 bg-blue-100 text-[#0057FF] text-sm font-medium px-4 py-1.5 rounded-full mb-6">
               <Building2 size={14} />
-              Para Imobiliárias
+              {t('plans.badge')}
             </div>
 
             <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-              Digitalize sua imobiliária{' '}
-              <span className="text-[#0057FF]">com IA</span>
+              {t('plans.title.pre')}{' '}
+              <span className="text-[#0057FF]">{t('plans.title.highlight')}</span>
             </h1>
             <p className="text-lg text-gray-600 max-w-xl mx-auto mb-8">
-              Escolha o plano ideal e comece a atender seus clientes 24 horas por dia
-              via WhatsApp com inteligência artificial.
+              {t('plans.subtitle')}
             </p>
 
             {/* Toggle */}
@@ -121,7 +169,7 @@ export default function PlanosPage() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Mensal
+                {t('plans.toggle.monthly')}
               </button>
               <button
                 onClick={() => setAnnual(true)}
@@ -131,17 +179,21 @@ export default function PlanosPage() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Anual
+                {t('plans.toggle.annual')}
                 <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                  -{Math.round((savings / (monthlyPrice * 12)) * 100)}%
+                  -{savingsPct}%
                 </span>
               </button>
             </div>
 
             {annual && (
               <p className="text-sm text-green-600 font-medium mt-3">
-                Economize {formatCurrency(savings)} por ano!
+                {t('plans.savings', { amount: fmt(savings) })}
               </p>
+            )}
+
+            {error && (
+              <p className="text-sm text-red-600 font-medium mt-3">{error}</p>
             )}
           </div>
         </section>
@@ -152,21 +204,23 @@ export default function PlanosPage() {
             {/* Monthly */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-card p-8">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Plano Mensal</h2>
-                <p className="text-gray-500 text-sm">
-                  Flexibilidade total sem compromisso
-                </p>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">
+                  {t('plans.monthly.name')}
+                </h2>
+                <p className="text-gray-500 text-sm">{t('plans.monthly.desc')}</p>
               </div>
 
               <div className="mb-6">
                 <div className="flex items-end gap-1">
                   <span className="text-4xl font-black text-gray-900">
-                    {formatCurrency(monthlyPrice)}
+                    {fmt(monthlyPrice)}
                   </span>
-                  <span className="text-gray-500 text-sm mb-1">/mês</span>
+                  <span className="text-gray-500 text-sm mb-1">
+                    {t('plans.monthly.perMonth')}
+                  </span>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  Cobrado mensalmente. Cancele quando quiser.
+                  {t('plans.monthly.billed')}
                 </p>
               </div>
 
@@ -177,14 +231,14 @@ export default function PlanosPage() {
                 onClick={() => handleSubscribe('MONTHLY')}
                 loading={loading}
               >
-                Assinar mensal
+                {t('plans.monthly.cta')}
               </Button>
 
               <div className="mt-8 space-y-3">
-                {FEATURES.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3">
+                {FEATURE_KEYS.map((key) => (
+                  <div key={key} className="flex items-center gap-3">
                     <CheckCircle size={16} className="text-[#0057FF] flex-shrink-0" />
-                    <span className="text-sm text-gray-700">{feature}</span>
+                    <span className="text-sm text-gray-700">{t(key)}</span>
                   </div>
                 ))}
               </div>
@@ -195,7 +249,7 @@ export default function PlanosPage() {
               {/* Best choice badge */}
               <div className="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
                 <Star size={11} />
-                MELHOR ESCOLHA
+                {t('plans.annual.badge')}
               </div>
 
               {/* Background decoration */}
@@ -204,23 +258,28 @@ export default function PlanosPage() {
 
               <div className="relative">
                 <div className="mb-6">
-                  <h2 className="text-xl font-bold text-white mb-1">Plano Anual</h2>
-                  <p className="text-blue-200 text-sm">Máxima economia e prioridade</p>
+                  <h2 className="text-xl font-bold text-white mb-1">
+                    {t('plans.annual.name')}
+                  </h2>
+                  <p className="text-blue-200 text-sm">{t('plans.annual.desc')}</p>
                 </div>
 
                 <div className="mb-6">
                   <div className="flex items-end gap-1">
                     <span className="text-4xl font-black text-white">
-                      {formatCurrency(annualPrice)}
+                      {fmt(annualPrice)}
                     </span>
-                    <span className="text-blue-200 text-sm mb-1">/ano</span>
+                    <span className="text-blue-200 text-sm mb-1">
+                      {t('plans.annual.perYear')}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-blue-200 text-xs line-through">
-                      {formatCurrency(monthlyPrice * 12)}/ano
+                      {fmt(monthlyPrice * 12)}
+                      {t('plans.annual.perYear')}
                     </span>
                     <span className="bg-white/20 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                      = {formatCurrency(annualMonthly)}/mês
+                      {t('plans.annual.perMonthEq', { amount: fmt(annualMonthly) })}
                     </span>
                   </div>
                 </div>
@@ -230,14 +289,14 @@ export default function PlanosPage() {
                   disabled={loading}
                   className="w-full bg-white text-[#0057FF] font-bold text-base py-3.5 rounded-xl hover:bg-blue-50 transition-colors disabled:opacity-60"
                 >
-                  {loading ? 'Aguarde...' : 'Assinar anual'}
+                  {loading ? t('plans.wait') : t('plans.annual.cta')}
                 </button>
 
                 <div className="mt-8 space-y-3">
-                  {FEATURES.map((feature) => (
-                    <div key={feature} className="flex items-center gap-3">
+                  {FEATURE_KEYS.map((key) => (
+                    <div key={key} className="flex items-center gap-3">
                       <CheckCircle size={16} className="text-blue-200 flex-shrink-0" />
-                      <span className="text-sm text-blue-100">{feature}</span>
+                      <span className="text-sm text-blue-100">{t(key)}</span>
                     </div>
                   ))}
                 </div>
@@ -249,19 +308,19 @@ export default function PlanosPage() {
           <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-500">
             <div className="flex items-center gap-2">
               <CheckCircle size={16} className="text-green-500" />
-              7 dias grátis
+              {t('plans.trust.freeTrial')}
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle size={16} className="text-green-500" />
-              Cancele quando quiser
+              {t('plans.trust.cancelAnytime')}
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle size={16} className="text-green-500" />
-              Pagamento seguro via Mercado Pago
+              {t('plans.trust.securePayment')}
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle size={16} className="text-green-500" />
-              Suporte em português
+              {t('plans.trust.support')}
             </div>
           </div>
         </section>
@@ -271,15 +330,13 @@ export default function PlanosPage() {
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-3">
-                Perguntas frequentes
+                {t('faq.heading')}
               </h2>
-              <p className="text-gray-600">
-                Tem mais dúvidas? Entre em contato pelo WhatsApp.
-              </p>
+              <p className="text-gray-600">{t('faq.subheading')}</p>
             </div>
 
             <div className="space-y-3">
-              {FAQ.map((item, index) => (
+              {FAQ_KEYS.map((item, index) => (
                 <div
                   key={index}
                   className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden"
@@ -289,7 +346,7 @@ export default function PlanosPage() {
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   >
                     <span className="font-semibold text-gray-900 text-sm pr-4">
-                      {item.question}
+                      {t(item.q)}
                     </span>
                     {openFaq === index ? (
                       <ChevronUp size={18} className="text-gray-400 flex-shrink-0" />
@@ -300,7 +357,7 @@ export default function PlanosPage() {
                   {openFaq === index && (
                     <div className="px-6 pb-6">
                       <p className="text-gray-600 text-sm leading-relaxed">
-                        {item.answer}
+                        {t(item.a)}
                       </p>
                     </div>
                   )}
@@ -309,15 +366,15 @@ export default function PlanosPage() {
             </div>
 
             <div className="text-center mt-12">
-              <p className="text-gray-600 mb-4">Ainda tem dúvidas?</p>
+              <p className="text-gray-600 mb-4">{t('faq.stillQuestions')}</p>
               <a
-                href="https://wa.me/5511999999999?text=Ola!%20Tenho%20interesse%20no%20ImobIA."
+                href="https://wa.me/5519982103949?text=Ola!%20Tenho%20interesse%20no%20ImobIA."
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Button variant="whatsapp" size="lg">
                   <Zap size={16} />
-                  Falar com especialista
+                  {t('faq.talkToSpecialist')}
                 </Button>
               </a>
             </div>

@@ -456,7 +456,12 @@ export default function ImoveisPage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="mb-6 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <span className="rounded bg-amber-500 px-2 py-0.5 text-xs font-bold text-amber-950">DEMONSTRAÇÃO</span>
+            <span className="text-sm text-amber-200/90">Imóveis ilustrativos para você ver como o sistema funciona. Não representam acervo disponível.</span>
+          </div>
+
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {MOCK_PROPERTIES.map((property) => (
                   <PropertyCard key={property.id} {...property} />
                 ))}

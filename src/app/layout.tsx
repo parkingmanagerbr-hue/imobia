@@ -1,8 +1,14 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { WhatsAppWidget } from './_components/WhatsAppWidget';
+import { I18nProvider } from '@/lib/i18n';
 
 export const metadata: Metadata = {
+  // metadataBase resolve as URLs relativas e habilita canonical/og:url — sem
+  // ele o Next nao emite essas tags e o site sai sem canonical (achado da
+  // auditoria de set/2026).
+  metadataBase: new URL('https://imobia.veloxisit.com.br'),
+  alternates: { canonical: '/' },
   title: {
     default: 'ImobIA — Imóveis com Inteligência Artificial',
     template: '%s | ImobIA',
@@ -22,6 +28,8 @@ export const metadata: Metadata = {
     ],
     type: 'website',
     locale: 'pt_BR',
+    url: 'https://imobia.veloxisit.com.br/',
+    siteName: 'ImobIA',
   },
   twitter: {
     card: 'summary_large_image',
@@ -36,11 +44,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        {children}
-        <WhatsAppWidget
-          businessName="ImobIA"
-          greeting="Olá! Quer usar IA no seu negócio imobiliário ou está buscando imóvel? Estamos aqui!"
-        />
+        <I18nProvider>
+          {children}
+          <WhatsAppWidget
+            businessName="ImobIA"
+            greeting="Olá! Quer usar IA no seu negócio imobiliário ou está buscando imóvel? Estamos aqui!"
+          />
+        </I18nProvider>
       </body>
     </html>
   );
